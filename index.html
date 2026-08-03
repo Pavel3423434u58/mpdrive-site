@@ -176,7 +176,11 @@
     <section id="lead" class="section lead-section">
       <div class="container lead-grid">
         <div class="lead-copy reveal"><span class="eyebrow">БЫСТРЫЙ РАСЧЁТ</span><h2>Отправьте артикул и задачу</h2><p>Подготовим предварительную схему работы и уточним, какие операции действительно нужны.</p><div class="contact-line"><span>WhatsApp</span><a href="https://wa.me/79299577924" target="_blank" rel="noopener">+7 929 957-79-24</a></div></div>
-        <form class="lead-form reveal delay-1" id="lead-form" novalidate>
+        <form class="lead-form reveal delay-1" id="lead-form" action="https://api.web3forms.com/submit" method="POST" novalidate>
+          <input type="hidden" name="access_key" value="54c55101-2bbf-45ab-ae37-7fbac2221026">
+          <input type="hidden" name="subject" value="Новая заявка с сайта MP DRIVE">
+          <input type="hidden" name="from_name" value="Сайт MP DRIVE">
+          <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none">
           <label>Маркетплейс<select name="marketplace" required><option value="">Выберите площадку</option><option>Wildberries</option><option>Ozon</option><option>Яндекс Маркет</option><option>Несколько площадок</option></select></label>
           <label>Ссылка или артикул<input name="product" type="text" placeholder="Например, 123456789" required></label>
           <label>Цена товара<input name="price" type="number" min="0" placeholder="₽" required></label>
@@ -185,7 +189,7 @@
           <label>Формат<select name="format"><option>Подберёт менеджер</option><option>Только выполнение</option><option>С получением</option><option>Полный цикл</option></select></label>
           <label class="full">Контакт<input name="contact" type="text" placeholder="Телефон или Telegram" required></label>
           <label class="consent full"><input name="consent" type="checkbox" required><span>Согласен на обработку персональных данных и <a href="#privacy">политику конфиденциальности</a>.</span></label>
-          <div class="form-bottom full"><button class="btn btn-primary btn-large" type="submit">Получить расчёт</button><p>Заявка откроется в WhatsApp уже заполненной.</p></div>
+          <div class="form-bottom full"><button class="btn btn-primary btn-large" type="submit">Получить расчёт</button><p>Заявка придёт менеджеру на электронную почту. WhatsApp остаётся доступен как быстрый способ связи.</p></div>
           <div class="form-message full" aria-live="polite"></div>
         </form>
       </div>
@@ -247,7 +251,41 @@
 
   document.querySelectorAll('[data-format]').forEach(b=>b.addEventListener('click',()=>{const s=document.querySelector('select[name="format"]');if(s)s.value=b.dataset.format}));
   const form=document.getElementById('lead-form'),msg=form?.querySelector('.form-message');
-  form?.addEventListener('submit',e=>{e.preventDefault();if(!form.checkValidity()){form.reportValidity();msg.textContent='Проверьте обязательные поля и согласие на обработку данных.';msg.className='form-message full error';return}const d=Object.fromEntries(new FormData(form).entries());const text=['Здравствуйте! Нужен расчёт MP DRIVE.',`Маркетплейс: ${d.marketplace}`,`Ссылка / артикул: ${d.product}`,`Цена товара: ${d.price} ₽`,`Количество заказов: ${d.quantity}`,`Получение с ПВЗ: ${d.pickup}`,`Формат: ${d.format}`,`Контакт: ${d.contact}`].join('\n');msg.textContent='Открываем WhatsApp с заполненной заявкой…';msg.className='form-message full success';window.open('https://wa.me/79299577924?text='+encodeURIComponent(text),'_blank','noopener')});
+  form?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!form.checkValidity()){
+      form.reportValidity();
+      msg.textContent='Проверьте обязательные поля и согласие на обработку данных.';
+      msg.className='form-message full error';
+      return;
+    }
+
+    const submitButton=form.querySelector('button[type="submit"]');
+    const originalButtonText=submitButton?.textContent||'Получить расчёт';
+    if(submitButton){submitButton.disabled=true;submitButton.textContent='Отправляем…'}
+    msg.textContent='Отправляем заявку менеджеру…';
+    msg.className='form-message full';
+
+    try{
+      const response=await fetch('https://api.web3forms.com/submit',{
+        method:'POST',
+        body:new FormData(form),
+        headers:{Accept:'application/json'}
+      });
+      const result=await response.json();
+      if(!response.ok||!result.success)throw new Error(result.message||'Не удалось отправить заявку');
+
+      msg.textContent='Заявка отправлена. Менеджер свяжется с вами по указанному контакту.';
+      msg.className='form-message full success';
+      form.reset();
+    }catch(error){
+      console.error(error);
+      msg.textContent='Не удалось отправить заявку. Напишите нам в WhatsApp или попробуйте ещё раз.';
+      msg.className='form-message full error';
+    }finally{
+      if(submitButton){submitButton.disabled=false;submitButton.textContent=originalButtonText}
+    }
+  });
 })();
 
 </script>
